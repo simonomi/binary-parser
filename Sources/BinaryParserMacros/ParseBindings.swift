@@ -34,7 +34,7 @@ func parseBinding(_ binding: PatternBindingSyntax, with attributes: Attributes) 
 				throw PropertyParsingError.cannotInferType(for: name, initializer.trimmedDescription)
 			}
 		} else {
-			fatalError("compiler bug: binding has no type")
+			fatalError("binding has no type")
 		}
 	
 	let expected = binding.initializer?.value.trimmedDescription
@@ -52,8 +52,16 @@ func parseBinding(_ binding: PatternBindingSyntax, with attributes: Attributes) 
 			.auto
 		}
 
-	guard type != "[Data]" || attributes.endOffset != nil else {
+	if type == "Data" && attributes.length == nil {
+		throw PropertyParsingError.missingLength(for: name)
+	}
+	
+	if type == "[Data]" && attributes.endOffset == nil {
 		throw PropertyParsingError.missingEndOffset(for: name)
+	}
+	
+	if attributes.length != nil && !["String", "Data"].contains(type) {
+		throw PropertyParsingError.lengthOnNonString(for: name, type)
 	}
 	
 	return Property(
@@ -62,7 +70,8 @@ func parseBinding(_ binding: PatternBindingSyntax, with attributes: Attributes) 
 		size: size,
 		padding: attributes.padding,
 		offset: attributes.offset,
-		expected: expected,
+		expected: expected, 
+		length: attributes.length,
 		ifCondition: attributes.ifCondition,
 		endOffset: attributes.endOffset
 	)

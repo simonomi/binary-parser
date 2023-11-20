@@ -12,6 +12,8 @@ enum PropertyParsingError: Error {
 	case cannotInferType(for: String, String)
 	case typeShouldBeOptional(for: String, String)
 	case missingEndOffset(for: String)
+	case lengthOnNonString(for: String, String)
+	case missingLength(for: String)
 }
 
 func parseProperties(_ declarations: [VariableDeclSyntax]) throws -> [Property] {

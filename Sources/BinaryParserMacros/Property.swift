@@ -12,6 +12,7 @@ struct Property {
 	var padding: ValueOrProperty?
 	var offset: ValueOrProperty?
 	var expected: String?
+	var length: ValueOrProperty?
 	var ifCondition: String?
 	var endOffset: ValueOrProperty?
 	

@@ -122,8 +122,38 @@ extension MyData {
 		guard let string = String(data: Data(bytes[offset..<endIndex]), encoding: .utf8) else {
 			throw StringParsingError.invalidUTF8
 		}
+		
 		defer { offset += string.utf8.count + 1 }
 		return string
+	}
+	
+	/// Documentation
+	public func read<T: BinaryInteger>(_ type: String.Type, length: T) throws -> String {
+		let length = Int(length)
+		
+		guard canRead(bytes: length) else {
+			throw BinaryParserError.indexOutOfBounds(index: offset + length, expected: bytes.indices, for: String.self)
+		}
+		guard let string = String(data: Data(bytes[offset..<(offset + length)]), encoding: .utf8) else {
+			throw StringParsingError.invalidUTF8
+		}
+		
+		defer { offset += length }
+		return string
+	}
+	
+	/// Documentation
+	public func read<T: BinaryInteger>(
+		_ type: Data.Type, length: T
+	) throws -> Data {
+		let length = Int(length)
+		
+		guard canRead(bytes: length) else {
+			throw BinaryParserError.indexOutOfBounds(index: offset + length, expected: bytes.indices, for: Data.self)
+		}
+		
+		defer { offset += length }
+		return Data(bytes[offset..<(offset + length)])
 	}
 	
 	/// Documentation

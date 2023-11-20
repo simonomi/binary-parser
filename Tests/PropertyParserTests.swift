@@ -84,16 +84,17 @@ final class ParsePropertiesTests: XCTestCase {
 	
 	func testVariousStrings() {
 		assert(
-			declarations: "var string: String",
-//				@Length(4) var string: String
-//				@Length(\Self.stringLength) var string: String
-//				var string = "hi"
-//				"""#,
+			declarations: #"""
+				var string: String
+				@Length(4) var string: String
+				@Length(\Self.stringLength) var string: String
+				var string = "hi"
+				"""#,
 			parseTo: [
 				Property(name: "string", type: "String", size: .auto),
-//				Property(name: "string", type: "String", size: .length(4)),
-//				Property(name: "string", type: "String", size: .length("stringLength")),
-//				Property(name: "string", type: "String", size: .length(2), expected: #""hi""#)
+				Property(name: "string", type: "String", size: .auto, length: 4),
+				Property(name: "string", type: "String", size: .auto, length: "stringLength"),
+				Property(name: "string", type: "String", size: .auto, expected: #""hi""#)
 			]
 		)
 	}
@@ -173,12 +174,24 @@ final class ParsePropertiesTests: XCTestCase {
 	
 	func testIfCondition() {
 		assert(
-			declaration: #"@If(\Self.test, is: 1) var string: String"#,
+			declaration: #"@If(\Self.test, is: .equalTo(1)) var string: String"#,
 			throws: PropertyParsingError.typeShouldBeOptional(for: "string", "String")
 		)
 		assert(
-			declaration: #"@If(\Self.test, is: 1) var string: String?"#,
-			parsesTo: Property(name: "string", type: "String", size: .auto, ifCondition: "test == 1")
+			declarations: #"""
+				@If(\Self.test, is: .equalTo(1)) var string1: String?
+				@If(\Self.test, is: .lessThan(1)) var string2: String?
+				@If(\Self.test, is: .greaterThan(1)) var string3: String?
+				@If(\Self.test, is: .lessThanOrEqualTo(1)) var string4: String?
+				@If(\Self.test, is: .greaterThanOrEqualTo(1)) var string5: String?
+				"""#,
+			parseTo: [
+				Property(name: "string1", type: "String", size: .auto, ifCondition: "test == 1"),
+				Property(name: "string2", type: "String", size: .auto, ifCondition: "test < 1"),
+				Property(name: "string3", type: "String", size: .auto, ifCondition: "test > 1"),
+				Property(name: "string4", type: "String", size: .auto, ifCondition: "test <= 1"),
+				Property(name: "string5", type: "String", size: .auto, ifCondition: "test >= 1")
+			]
 		)
 	}
 	

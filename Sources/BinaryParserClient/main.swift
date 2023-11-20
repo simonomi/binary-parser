@@ -147,7 +147,136 @@ struct MPM {
 }
 
 @BinaryConvertible
-struct NDS {}
+struct NDS {
+	var header: Header
+	
+	@Offset(givenBy: \Self.header.arm9Offset)
+	@Length(givenBy: \Self.header.arm9Size)
+	var arm9: Data
+	@Offset(givenBy: \Self.header.arm9OverlayOffset)
+	@Count(givenBy: \Self.header.arm9OverlaySize, .dividedBy(32))
+	var arm9OverlayTable: [OverlayTableEntry]
+	
+	@Offset(givenBy: \Self.header.arm7Offset)
+	@Length(givenBy: \Self.header.arm7Size)
+	var arm7: Data
+	@Offset(givenBy: \Self.header.arm7OverlayOffset)
+	@Count(givenBy: \Self.header.arm7OverlaySize, .dividedBy(32))
+	var arm7OverlayTable: [OverlayTableEntry]
+	
+	@Offset(givenBy: \Self.header.iconBannerOffset)
+	@Length(0x840) // hardcoded for version 1
+	var iconBanner: Data
+	
+	@Offset(givenBy: \Self.header.fileNameTableOffset)
+	var fileNameTable: FileNameTable
+	
+	@Offset(givenBy: \Self.header.fileAllocationTableOffset)
+	@Count(givenBy: \Self.header.fileAllocationTableSize, .dividedBy(8))
+	var fileAllocationTable: [FileAllocationTableEntry]
+	
+	@BinaryConvertible
+	struct Header {
+		@Length(12)
+		var gameTitle: String
+		@Length(4)
+		var gamecode: String
+		@Length(2)
+		var makercode: String
+		var unitcode: UInt8
+		var encryptionSeedSelect: UInt8
+		var deviceCapacity: UInt8
+		@Padding(bytes: 7) // reserved
+		var ndsRegion: UInt16
+		var romVersion: UInt8
+		var internalFlags: UInt8
+		var arm9Offset: UInt32
+		var arm9EntryAddress: UInt32
+		var arm9LoadAddress: UInt32
+		var arm9Size: UInt32
+		var arm7Offset: UInt32
+		var arm7EntryAddress: UInt32
+		var arm7LoadAddress: UInt32
+		var arm7Size: UInt32
+		var fileNameTableOffset: UInt32
+		var fileNameTableSize: UInt32
+		var fileAllocationTableOffset: UInt32
+		var fileAllocationTableSize: UInt32
+		var arm9OverlayOffset: UInt32
+		var arm9OverlaySize: UInt32
+		var arm7OverlayOffset: UInt32
+		var arm7OverlaySize: UInt32
+		var normalCardControlRegisterSettings: UInt32
+		var secureCardControlRegisterSettings: UInt32
+		var iconBannerOffset: UInt32
+		var secureAreaCRC: UInt16
+		var secureTransferTimeout: UInt16
+		var arm9Autoload: UInt32
+		var arm7Autoload: UInt32
+		var secureDisable: UInt64
+		var totalROMSize: UInt32
+		var headerSize: UInt32
+		@Padding(bytes: 212) // 56: reserved, 156: nintendo logo
+		var nintendoLogoCRC: UInt16
+		var headerCRC: UInt16
+//		@Padding(bytes: 32) // debugger reserved
+//		var nothing: Empty
+	}
+	
+	@BinaryConvertible
+	struct OverlayTableEntry {
+		var id: UInt32
+		var loadAddress: UInt32
+		var size: UInt32
+		var bssSize: UInt32
+		var staticInitializerStartAddress: UInt32
+		var staticInitializerEndAddress: UInt32
+		var fileId: UInt32
+		var reserved: UInt32
+	}
+	
+	@BinaryConvertible
+	struct FileNameTable {
+		var rootFolder: MainEntry
+		@Count(givenBy: \Self.rootFolder.parentId, .minus(1))
+		var mainTable: [MainEntry]
+		@Offsets(givenBy: \Self.mainTable, at: \.subTableOffset)
+		var subTable: [[SubEntry]]
+		
+		@BinaryConvertible
+		struct MainEntry {
+			var subTableOffset: UInt32
+			var firstChildId: UInt16
+			var parentId: UInt16 // for first entry, number of folders instead of parent id
+		}
+		
+		@BinaryConvertible
+		struct SubEntry {
+			var typeAndNameLength: UInt8
+			@Length(givenBy: \Self.typeAndNameLength, .modulo(0x80))
+			var name: String
+			@If(\Self.typeAndNameLength, is: .greaterThan(0x80))
+			var id: UInt16?
+		}
+	}
+	
+	@BinaryConvertible
+	struct FileAllocationTableEntry {
+		var startAddress: UInt32
+		var endAddress: UInt32
+	}
+}
+
+extension [NDS.FileNameTable.SubEntry]: BinaryConvertible {
+	public init(from data: BinaryParser.MyData) throws {
+		self = []
+		
+		while last?.typeAndNameLength != 0 {
+			append(try data.read(NDS.FileNameTable.SubEntry.self))
+		}
+		removeLast()
+	}
+}
 
 @BinaryConvertible
 struct RLS {
@@ -191,9 +320,9 @@ struct RLS {
 		var unknown10: UInt32
 		var unknown11: UInt32
 		
-		@If(\Self.isEntry, is: 1)
+		@If(\Self.isEntry, is: .equalTo(1))
 		var unknown14: UInt32?
-		@If(\Self.isEntry, is: 1)
+		@If(\Self.isEntry, is: .equalTo(1))
 		var unknown15: UInt32?
 	}
 }
@@ -234,3 +363,9 @@ struct RLS {
 //let rls = try rlsData.read(RLS.self)
 //print(-start.timeIntervalSinceNow)
 //print(rls)
+
+let ndsData = MyData(try Data(contentsOf: URL(filePath: "/Users/simonomi/ff1/Fossil Fighters.nds")))
+let start = Date.now
+let nds = try ndsData.read(NDS.self)
+print(-start.timeIntervalSinceNow)
+//print(nds)

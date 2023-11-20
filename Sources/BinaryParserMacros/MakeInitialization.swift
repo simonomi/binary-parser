@@ -21,6 +21,13 @@ extension Property {
 				""
 			}
 		
+		let lengthArgument =
+			if let length {
+				", length: \(length.value)"
+			} else {
+				""
+			}
+		
 		let endOffsetArgument =
 			if let endOffset {
 				", endOffset: \(endOffset.value)"
@@ -30,7 +37,7 @@ extension Property {
 		
 		let dataRead = switch size {
 			case .auto:
-				"\(name) = try data.read(\(type).self)"
+				"\(name) = try data.read(\(type).self\(lengthArgument))"
 			
 			case .count(let count):
 				"\(name) = try data.read(\(type).self, count: \(count.value))"

@@ -12,6 +12,7 @@ struct Attributes {
 	var offset: ValueOrProperty?
 	var count: ValueOrProperty?
 	var offsets: Property.Size.Offsets?
+	var length: ValueOrProperty?
 	var ifCondition: String?
 	var endOffset: ValueOrProperty?
 	
